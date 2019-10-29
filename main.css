@@ -1,0 +1,18 @@
+body{
+    margin: 1px;
+    background: linear-gradient(to bottom, #FFFFFF, #CCFFCC);
+}
+
+div{
+    border: 1px solid blue;
+    margin: 5px;
+}
+
+div.container{
+    width: calc(100% - 10px);
+}
+
+.main{
+    min-height: 90%;
+    height: 90%;
+}

@@ -6,7 +6,7 @@ class database_helper
     private static $usecount = 0;
     function __construct()
     {
-        if (!isset(self::$msi) || self::$msi===false) {
+        if (self::$usecount === 0) {
             self::$msi = new mysqli(
                 'localhost',
                 'smak',
@@ -17,8 +17,8 @@ class database_helper
             if (!self::$msi || self::$msi->connect_errno) {
                 throw new Exception('Ошибка подключения к базе данных');
             }
-            self::$usecount++;
         }
+        self::$usecount++;
     }
 
     public function __destruct()
@@ -44,12 +44,21 @@ class database_helper
 
     public function execute_param_query($sql){
         $anum = func_num_args();
+        if ($anum<2) {
+            return $this->execute_query($sql);
+        }
         $args = func_get_args();
         $statement =
             self::$msi->prepare($sql);
+        if (!$statement){
+            return 'Не удалось выполнить запрос к базе данных';
+        }
         $t = '';
         for ($i = 1; $i<$anum; $i++){
-            $t.='s';
+            if (is_numeric($args[$i])){
+                $t .= (($args[$i]===(int)($args[$i]))?'i':'d');
+            } else
+                $t.='s';
         }
         $prm = [$t];
         for ($i = 1; $i<$anum; $i++) {
@@ -59,7 +68,7 @@ class database_helper
             $ref = new ReflectionClass('mysqli_stmt');
             $method = $ref->getMethod('bind_param');
             $method->invokeArgs($statement, $prm);
-            if ($statement->execute()) {
+            if ($statement && $statement->execute()) {
                 $meta = $statement->result_metadata();
                 $params = [];
                 while ($field = $meta->fetch_field()) {
@@ -69,8 +78,10 @@ class database_helper
                     $result = [];
                     while ($statement->fetch()) {
                         $c = [];
+                        $i = 0;
                         foreach ($row as $key => $val) {
                             $c[$key] = $val;
+                            $c[$i++] = $val;
                         }
                         $result[] = $c;
                     }
@@ -87,6 +98,9 @@ class database_helper
 
     public function execute_param($sql){
         $anum = func_num_args();
+        if ($anum<2) {
+            return $this->execute($sql);
+        }
         $args = func_get_args();
         $statement =
             self::$msi->prepare($sql);
